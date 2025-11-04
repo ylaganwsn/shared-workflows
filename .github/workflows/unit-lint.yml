@@ -34,12 +34,21 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version || '8.0.x' }}
-
+      
+      - name: Find .NET project path
+        if: ${{ inputs.test_target == 'dotnet' }}
+        id: dotnet-path
+        run: |
+          PROJECT_PATH=$(find . -name "*.csproj" | head -n 1)
+          echo "Found project: $PROJECT_PATH"
+          echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
+      
       - name: Restore & Test (.NET)
         if: ${{ inputs.test_target == 'dotnet' }}
         run: |
-          dotnet restore
-          dotnet test --no-build --logger "trx;LogFileName=test_results.trx"
+          dotnet restore "${{ steps.dotnet-path.outputs.project_path }}"
+          dotnet test "${{ steps.dotnet-path.outputs.project_path }}" --no-build --logger "trx;LogFileName=test_results.trx"
+      
       - name: Lint (.NET) - placeholder
         if: ${{ inputs.test_target == 'dotnet' }}
         run: echo "Add stylecop/sonar/other linter steps if desired" || true
