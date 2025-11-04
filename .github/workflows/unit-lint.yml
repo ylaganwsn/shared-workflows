@@ -60,11 +60,7 @@ jobs:
       - name: Run Python Linter
         if: ${{ inputs.test_target == 'python' }}
         run: |
-          if command -v pylint >/dev/null 2>&1; then
-            pylint $(python -c "import os,sys; print(' '.join([p for p in os.listdir('.') if os.path.isdir(p) and p != '.github'])) )" || true
-          else
-            echo "pylint not installed; skipping linter"
-          fi
+          pylint $(python -c "import os; print(' '.join([p for p in os.listdir('.') if os.path.isdir(p) and p != '.github']))") || true
 
       - name: Run Pytest
         if: ${{ inputs.test_target == 'python' }}
