@@ -6,11 +6,7 @@ on:
       test_target:
         description: 'Which code to lint/test (dotnet, python, nodeJS)'
         required: true
-        type: choice
-        options:
-          - dotnet
-          - python
-          - nodeJS
+        type: string
       python-version:
         required: false
         type: string
