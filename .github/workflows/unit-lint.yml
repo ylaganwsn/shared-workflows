@@ -116,33 +116,34 @@ jobs:
         run: |
           echo "Running .NET lint and unit tests..."
           cd "${{ inputs.working_directory }}"
-
+      
           echo "Restoring dependencies for all projects..."
-          for proj in $(find . -name "*.csproj"); do
+          find . -name "*.csproj" -print0 | while IFS= read -r -d '' proj; do
             echo "Restoring $proj"
             dotnet restore "$proj"
           done
-
+      
           # Run lint (dotnet format)
           echo "Running dotnet format lint..."
-          dotnet format --verify-no-changes || echo "Lint issues found (non-blocking)."
-
-          # Run tests with coverage
+          PROJECT_PATH=$(find . -name "*.csproj" | head -n 1)
+          dotnet format "$PROJECT_PATH" --verify-no-changes || echo "Lint issues found (non-blocking)."
+      
+          # Run unit tests
           echo "Running unit tests with coverage..."
           TEST_PROJECT=$(find . -name "*.Tests.csproj" | head -n 1)
           if [ -z "$TEST_PROJECT" ]; then
-            echo "No test project (*.Tests.csproj) found — skipping tests."
+            echo "❌ No test project (*.Tests.csproj) found — skipping tests."
             exit 1
           fi
-
+      
           dotnet test "$TEST_PROJECT" \
-            --no-build \
             --logger "trx;LogFileName=test_results.trx" \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=cobertura \
-            /p:Threshold=${{ inputs.coverage_threshold }}
-
+            /p:Threshold=80
+      
           echo ".NET lint/unit tests completed. Reports are in TestResults/ or coverage files in project folder."
+
 
       # Set up Java
       - name: Set up Java
