@@ -132,3 +132,35 @@ jobs:
           fi
           dotnet restore "${{ steps.dotnet-path.outputs.project_path }}"
           dotnet test "${{ steps.dotnet-path.outputs.project_path }}" --no-build --logger "trx;LogFileName=test_results.trx" || true
+
+        # Set up Java
+      - name: Set up Java
+        if: ${{ inputs.language == 'java' }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'  # Or whichever version you need
+          distribution: 'temurin'
+      
+      # Lint & Test (Java)
+      - name: Lint & Test (Java)
+        if: ${{ inputs.language == 'java' }}
+        run: |
+          echo "Running Java lint and unit tests..."
+          cd "${{ steps.select-dir.outputs.test_dir }}"
+      
+          if [ -f "pom.xml" ]; then
+            echo "Found Maven project. Installing dependencies and running tests..."
+            mvn -B verify checkstyle:check || true  # Run tests + checkstyle; continue on lint errors
+      
+            echo "Generating JaCoCo coverage report..."
+            mvn jacoco:report
+      
+            # Optional: Enforce coverage threshold
+            COVERAGE=$(grep -Po 'TOTAL\s+\d+\s+\d+\s+\K\d+' target/site/jacoco/jacoco.csv)
+            if [ -n "$COVERAGE" ] && (( COVERAGE < ${{ inputs.coverage_threshold }} )); then
+              echo "Coverage $COVERAGE% below threshold ${{ inputs.coverage_threshold }}%"
+              exit 1
+            fi
+          else
+            echo "pom.xml not found — skipping Java lint/test"
+          fi
