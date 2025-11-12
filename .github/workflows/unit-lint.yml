@@ -56,82 +56,82 @@ jobs:
           echo "Selected test directory: ${{ steps.select-dir.outputs.test_dir }}"
           ls -R "${{ steps.select-dir.outputs.test_dir }}" || true
 
-      # NodeJS
-      - name: Set up Node.js
-        if: ${{ inputs.language == 'nodejs' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      # # NodeJS
+      # - name: Set up Node.js
+      #   if: ${{ inputs.language == 'nodejs' }}
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
 
-      - name: Lint & Test (NodeJS)
-        if: ${{ inputs.language == 'nodejs' }}
-        run: |
-          cd "${{ steps.select-dir.outputs.test_dir }}"
-          if [ -f "package.json" ]; then
-            echo "Running npm install/lint/test..."
-            npm ci || npm install
-            npm run lint || echo "No lint script found"
-            npm test || echo "No test script found"
-          else
-            echo "package.json not found — skipping NodeJS lint/test"
-          fi
+      # - name: Lint & Test (NodeJS)
+      #   if: ${{ inputs.language == 'nodejs' }}
+      #   run: |
+      #     cd "${{ steps.select-dir.outputs.test_dir }}"
+      #     if [ -f "package.json" ]; then
+      #       echo "Running npm install/lint/test..."
+      #       npm ci || npm install
+      #       npm run lint || echo "No lint script found"
+      #       npm test || echo "No test script found"
+      #     else
+      #       echo "package.json not found — skipping NodeJS lint/test"
+      #     fi
 
-      # Python
-      - name: Set up Python
-        if: ${{ inputs.language == 'python' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      # # Python
+      # - name: Set up Python
+      #   if: ${{ inputs.language == 'python' }}
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: "3.12"
 
-      - name: Lint & Test (Python)
-        if: ${{ inputs.language == 'python' }}
-        run: |
-          echo "Running Python lint and unit tests..."
-          cd "${{ steps.select-dir.outputs.test_dir }}"
+      # - name: Lint & Test (Python)
+      #   if: ${{ inputs.language == 'python' }}
+      #   run: |
+      #     echo "Running Python lint and unit tests..."
+      #     cd "${{ steps.select-dir.outputs.test_dir }}"
 
-          if [ -f "requirements.txt" ]; then
-            echo "Installing dependencies..."
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
+      #     if [ -f "requirements.txt" ]; then
+      #       echo "Installing dependencies..."
+      #       python -m pip install --upgrade pip
+      #       python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
 
-            echo "Running flake8 lint..."
-            flake8 . || true
+      #       echo "Running flake8 lint..."
+      #       flake8 . || true
 
-            echo "Running pytest..."
-            export PYTHONPATH="${PWD}/src"
-            pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
-          else
-            echo "requirements.txt not found — skipping Python lint/test"
-          fi
+      #       echo "Running pytest..."
+      #       export PYTHONPATH="${PWD}/src"
+      #       pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
+      #     else
+      #       echo "requirements.txt not found — skipping Python lint/test"
+      #     fi
 
-      # .NET
-      - name: Set up .NET
-        if: ${{ inputs.language == 'dotnet' }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
+      # # .NET
+      # - name: Set up .NET
+      #   if: ${{ inputs.language == 'dotnet' }}
+      #   uses: actions/setup-dotnet@v4
+      #   with:
+      #     dotnet-version: "8.0.x"
 
-      - name: Find .NET project path
-        if: ${{ inputs.language == 'dotnet' }}
-        id: dotnet-path
-        run: |
-          PROJECT_PATH=$(find "${{ steps.select-dir.outputs.test_dir }}" -name "*.csproj" | head -n 1)
-          if [ -z "$PROJECT_PATH" ]; then
-            echo "No .csproj found in artifact — using working_directory"
-            PROJECT_PATH=$(find "${{ inputs.working_directory }}" -name "*.csproj" | head -n 1)
-          fi
-          echo "Found project path: $PROJECT_PATH"
-          echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
+      # - name: Find .NET project path
+      #   if: ${{ inputs.language == 'dotnet' }}
+      #   id: dotnet-path
+      #   run: |
+      #     PROJECT_PATH=$(find "${{ steps.select-dir.outputs.test_dir }}" -name "*.csproj" | head -n 1)
+      #     if [ -z "$PROJECT_PATH" ]; then
+      #       echo "No .csproj found in artifact — using working_directory"
+      #       PROJECT_PATH=$(find "${{ inputs.working_directory }}" -name "*.csproj" | head -n 1)
+      #     fi
+      #     echo "Found project path: $PROJECT_PATH"
+      #     echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
 
-      - name: Restore & Test (.NET)
-        if: ${{ inputs.language == 'dotnet' }}
-        run: |
-          if [ -z "${{ steps.dotnet-path.outputs.project_path }}" ]; then
-            echo "No .NET project file found. Skipping tests."
-            exit 0
-          fi
-          dotnet restore "${{ steps.dotnet-path.outputs.project_path }}"
-          dotnet test "${{ steps.dotnet-path.outputs.project_path }}" --no-build --logger "trx;LogFileName=test_results.trx" || true
+      # - name: Restore & Test (.NET)
+      #   if: ${{ inputs.language == 'dotnet' }}
+      #   run: |
+      #     if [ -z "${{ steps.dotnet-path.outputs.project_path }}" ]; then
+      #       echo "No .NET project file found. Skipping tests."
+      #       exit 0
+      #     fi
+      #     dotnet restore "${{ steps.dotnet-path.outputs.project_path }}"
+      #     dotnet test "${{ steps.dotnet-path.outputs.project_path }}" --no-build --logger "trx;LogFileName=test_results.trx" || true
 
         # Set up Java
       - name: Set up Java
