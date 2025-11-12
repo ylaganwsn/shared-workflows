@@ -104,34 +104,43 @@ jobs:
       #       echo "requirements.txt not found — skipping Python lint/test"
       #     fi
 
-      # # .NET
-      # - name: Set up .NET
-      #   if: ${{ inputs.language == 'dotnet' }}
-      #   uses: actions/setup-dotnet@v4
-      #   with:
-      #     dotnet-version: "8.0.x"
+      # .NET
+      - name: Set up .NET
+        if: ${{ inputs.language == 'dotnet' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
 
-      # - name: Find .NET project path
-      #   if: ${{ inputs.language == 'dotnet' }}
-      #   id: dotnet-path
-      #   run: |
-      #     PROJECT_PATH=$(find "${{ steps.select-dir.outputs.test_dir }}" -name "*.csproj" | head -n 1)
-      #     if [ -z "$PROJECT_PATH" ]; then
-      #       echo "No .csproj found in artifact — using working_directory"
-      #       PROJECT_PATH=$(find "${{ inputs.working_directory }}" -name "*.csproj" | head -n 1)
-      #     fi
-      #     echo "Found project path: $PROJECT_PATH"
-      #     echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
+      - name: Lint & Test (.NET)
+        if: ${{ inputs.language == 'dotnet' }}
+        run: |
+          echo "Running .NET lint and unit tests..."
+          cd "${{ inputs.working_directory }}"
 
-      # - name: Restore & Test (.NET)
-      #   if: ${{ inputs.language == 'dotnet' }}
-      #   run: |
-      #     if [ -z "${{ steps.dotnet-path.outputs.project_path }}" ]; then
-      #       echo "No .NET project file found. Skipping tests."
-      #       exit 0
-      #     fi
-      #     dotnet restore "${{ steps.dotnet-path.outputs.project_path }}"
-      #     dotnet test "${{ steps.dotnet-path.outputs.project_path }}" --no-build --logger "trx;LogFileName=test_results.trx" || true
+          echo "Restoring dependencies..."
+          dotnet restore
+
+          # Run lint (dotnet format)
+          echo "Running dotnet format lint..."
+          dotnet format --verify-no-changes || echo "Lint issues found (non-blocking)."
+
+          # Run tests with coverage
+          echo "Running unit tests with coverage..."
+          TEST_PROJECT=$(find . -name "*.Tests.csproj" | head -n 1)
+          if [ -z "$TEST_PROJECT" ]; then
+            echo "No test project (*.Tests.csproj) found — skipping tests."
+            exit 1
+          fi
+
+          dotnet test "$TEST_PROJECT" \
+            --no-build \
+            --logger "trx;LogFileName=test_results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=cobertura \
+            /p:Threshold=${{ inputs.coverage_threshold }}
+
+          echo ".NET lint/unit tests completed. Reports are in TestResults/ or coverage files in project folder."
+
 
       # Set up Java
       - name: Set up Java
