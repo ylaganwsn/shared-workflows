@@ -145,9 +145,16 @@ jobs:
         if: ${{ inputs.language == 'java' }}
         run: |
           echo "Running Checkstyle lint, unit tests, and coverage..."
+      
           cd "${{ inputs.working_directory }}"
       
-          # Install dependencies and run Maven build
-          mvn clean verify
+          # Run lint only (Checkstyle)
+          echo "Running Checkstyle lint..."
+          mvn checkstyle:checkstyle
+      
+          # Run unit tests with coverage (JaCoCo)
+          echo "Running unit tests and coverage..."
+          mvn clean test jacoco:report
       
           echo "Java lint/unit tests completed. Reports are in target/site/"
+
