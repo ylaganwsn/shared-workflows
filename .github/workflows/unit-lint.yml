@@ -118,7 +118,7 @@ jobs:
           cd "${{ inputs.working_directory }}"
 
           echo "Restoring dependencies..."
-          dotnet restore
+          dotnet restore **/*.csproj
 
           # Run lint (dotnet format)
           echo "Running dotnet format lint..."
@@ -128,7 +128,7 @@ jobs:
           echo "Running unit tests with coverage..."
           TEST_PROJECT=$(find . -name "*.Tests.csproj" | head -n 1)
           if [ -z "$TEST_PROJECT" ]; then
-            echo "No test project (*.Tests.csproj) found — skipping tests."
+            echo "❌ No test project (*.Tests.csproj) found — skipping tests."
             exit 1
           fi
 
