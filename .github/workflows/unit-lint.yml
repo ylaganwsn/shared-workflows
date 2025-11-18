@@ -56,53 +56,53 @@ jobs:
           echo "Selected test directory: ${{ steps.select-dir.outputs.test_dir }}"
           ls -R "${{ steps.select-dir.outputs.test_dir }}" || true
 
-      # # NodeJS
-      # - name: Set up Node.js
-      #   if: ${{ inputs.language == 'nodejs' }}
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: 20
+      # NodeJS
+      - name: Set up Node.js
+        if: ${{ inputs.language == 'nodejs' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      # - name: Lint & Test (NodeJS)
-      #   if: ${{ inputs.language == 'nodejs' }}
-      #   run: |
-      #     cd "${{ steps.select-dir.outputs.test_dir }}"
-      #     if [ -f "package.json" ]; then
-      #       echo "Running npm install/lint/test..."
-      #       npm ci || npm install
-      #       npm run lint || echo "No lint script found"
-      #       npm test || echo "No test script found"
-      #     else
-      #       echo "package.json not found — skipping NodeJS lint/test"
-      #     fi
+      - name: Lint & Test (NodeJS)
+        if: ${{ inputs.language == 'nodejs' }}
+        run: |
+          cd "${{ steps.select-dir.outputs.test_dir }}"
+          if [ -f "package.json" ]; then
+            echo "Running npm install/lint/test..."
+            npm ci || npm install
+            npm run lint || echo "lint script found"
+            npm test || echo "No test script found"
+          else
+            echo "package.json not found — skipping NodeJS lint/test"
+          fi
 
-      # # Python
-      # - name: Set up Python
-      #   if: ${{ inputs.language == 'python' }}
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: "3.12"
+      # Python
+      - name: Set up Python
+        if: ${{ inputs.language == 'python' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # - name: Lint & Test (Python)
-      #   if: ${{ inputs.language == 'python' }}
-      #   run: |
-      #     echo "Running Python lint and unit tests..."
-      #     cd "${{ steps.select-dir.outputs.test_dir }}"
+      - name: Lint & Test (Python)
+        if: ${{ inputs.language == 'python' }}
+        run: |
+          echo "Running Python lint and unit tests..."
+          cd "${{ steps.select-dir.outputs.test_dir }}"
 
-      #     if [ -f "requirements.txt" ]; then
-      #       echo "Installing dependencies..."
-      #       python -m pip install --upgrade pip
-      #       python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
+          if [ -f "requirements.txt" ]; then
+            echo "Installing dependencies..."
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
 
-      #       echo "Running flake8 lint..."
-      #       flake8 . || true
+            echo "Running flake8 lint..."
+            flake8 . || true
 
-      #       echo "Running pytest..."
-      #       export PYTHONPATH="${PWD}/src"
-      #       pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
-      #     else
-      #       echo "requirements.txt not found — skipping Python lint/test"
-      #     fi
+            echo "Running pytest..."
+            export PYTHONPATH="${PWD}/src"
+            pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
+          else
+            echo "requirements.txt not found — skipping Python lint/test"
+          fi
 
       # .NET
       - name: Set up .NET
@@ -116,57 +116,59 @@ jobs:
         run: |
           echo "Running .NET lint and unit tests..."
           cd "${{ inputs.working_directory }}"
-      
-          echo "Restoring dependencies for all projects..."
+
+          echo "Restoring all .csproj files..."
           find . -name "*.csproj" -print0 | while IFS= read -r -d '' proj; do
             echo "Restoring $proj"
             dotnet restore "$proj"
           done
-      
-          # Run lint (dotnet format)
-          echo "Running dotnet format lint..."
-          PROJECT_PATH=$(find . -name "*.csproj" | head -n 1)
-          dotnet format "$PROJECT_PATH" --verify-no-changes || echo "Lint issues found (non-blocking)."
-      
-          # Run unit tests
+
+          echo "Running dotnet format lint (non-blocking)..."
+          # Lint all csproj files (main projects only, ignore test projects)
+          find . -name "*.csproj" ! -path "*/SampleApp.Tests/*" -print0 | while IFS= read -r -d '' proj; do
+            echo "Linting $proj"
+            dotnet format "$proj" --verify-no-changes || echo "Lint issues found in $proj (non-blocking)."
+          done
+
           echo "Running unit tests with coverage..."
-          TEST_PROJECT=$(find . -name "*.Tests.csproj" | head -n 1)
-          if [ -z "$TEST_PROJECT" ]; then
-            echo "❌ No test project (*.Tests.csproj) found — skipping tests."
-            exit 1
+          TEST_PROJECTS=$(find . -name "*.Tests.csproj")
+          if [ -z "$TEST_PROJECTS" ]; then
+            echo "No test projects (*.Tests.csproj) found — skipping tests."
+          else
+            for TEST_PROJECT in $TEST_PROJECTS; do
+              echo "Testing $TEST_PROJECT"
+              dotnet test "$TEST_PROJECT" \
+                --logger "trx;LogFileName=test_results.trx" \
+                /p:CollectCoverage=true \
+                /p:CoverletOutputFormat=cobertura \
+                /p:Threshold=80
+            done
           fi
-      
-          dotnet test "$TEST_PROJECT" \
-            --logger "trx;LogFileName=test_results.trx" \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=cobertura \
-            /p:Threshold=80
-      
-          echo ".NET lint/unit tests completed. Reports are in TestResults/ or coverage files in project folder."
+
+          echo ".NET lint/unit tests completed. Reports are in TestResults/ or coverage files in project folders."
 
 
-      # Set up Java
+        # Set up Java
       - name: Set up Java
         if: ${{ inputs.language == 'java' }}
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-      
+
       - name: Lint & Test (Java)
         if: ${{ inputs.language == 'java' }}
         run: |
           echo "Running Checkstyle lint, unit tests, and coverage..."
-      
+
           cd "${{ inputs.working_directory }}"
-      
+
           # Run lint only (Checkstyle)
           echo "Running Checkstyle lint..."
           mvn checkstyle:checkstyle
-      
+
           # Run unit tests with coverage (JaCoCo)
           echo "Running unit tests and coverage..."
           mvn clean test jacoco:report
-      
-          echo "Java lint/unit tests completed. Reports are in target/site/"
 
+          echo "Java lint/unit tests completed. Reports are in target/site/"
