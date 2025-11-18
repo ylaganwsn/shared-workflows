@@ -110,47 +110,45 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      
+
       - name: Lint & Test (.NET)
         if: ${{ inputs.language == 'dotnet' }}
         run: |
           echo "Running .NET lint and unit tests..."
           cd "${{ inputs.working_directory }}"
-      
-          # Restore all projects
+
           echo "Restoring all .csproj files..."
           find . -name "*.csproj" -print0 | while IFS= read -r -d '' proj; do
             echo "Restoring $proj"
             dotnet restore "$proj"
           done
-      
-          # Lint main projects only (skip test projects)
-          echo "Running dotnet format lint (non-blocking)..."
-          find . -name "*.csproj" ! -path "*/Tests/*" -print0 | while IFS= read -r -d '' proj; do
-            echo "Linting $proj"
-            dotnet format "$proj" --verify-no-changes || echo "Lint issues found in $proj (non-blocking)."
-          done
-      
-          # Run unit tests on all test projects
+
+          echo "Running dotnet format lint (main projects only)..."
+          find . -name "*.csproj" ! -path "*/*.Tests.csproj" -print0 |
+            while IFS= read -r -d '' proj; do
+              echo "Linting $proj"
+              dotnet format "$proj" --verify-no-changes || \
+                echo "Lint issues in $proj (non-blocking)."
+            done
+
           echo "Running unit tests with coverage..."
           TEST_PROJECTS=$(find . -name "*.Tests.csproj")
+
           if [ -z "$TEST_PROJECTS" ]; then
             echo "No test projects found — skipping tests."
-          else
-            for TEST_PROJECT in $TEST_PROJECTS; do
-              echo "Testing $TEST_PROJECT"
-              dotnet test "$TEST_PROJECT" \
-                --logger "trx;LogFileName=test_results.trx" \
-                /p:CollectCoverage=true \
-                /p:CoverletOutputFormat=cobertura \
-                /p:Threshold=80
-            done
+            exit 1
           fi
-      
-          echo ".NET lint/unit tests completed. Reports are in TestResults/ or coverage files in project folders."
-        shell: /usr/bin/bash -e {0}
-        env:
-          DOTNET_ROOT: /usr/share/dotnet
+
+          for TEST_PROJECT in $TEST_PROJECTS; do
+            echo "Testing $TEST_PROJECT"
+            dotnet test "$TEST_PROJECT" \
+              --logger "trx;LogFileName=test_results.trx" \
+              /p:CollectCoverage=true \
+              /p:CoverletOutputFormat=cobertura \
+              /p:Threshold=80
+          done
+
+          echo ".NET lint/unit tests completed!"
 
         # Set up Java
       - name: Set up Java
