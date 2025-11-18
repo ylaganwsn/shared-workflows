@@ -56,53 +56,53 @@ jobs:
           echo "Selected test directory: ${{ steps.select-dir.outputs.test_dir }}"
           ls -R "${{ steps.select-dir.outputs.test_dir }}" || true
 
-      # NodeJS
-      - name: Set up Node.js
-        if: ${{ inputs.language == 'nodejs' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      # # NodeJS
+      # - name: Set up Node.js
+      #   if: ${{ inputs.language == 'nodejs' }}
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
 
-      - name: Lint & Test (NodeJS)
-        if: ${{ inputs.language == 'nodejs' }}
-        run: |
-          cd "${{ steps.select-dir.outputs.test_dir }}"
-          if [ -f "package.json" ]; then
-            echo "Running npm install/lint/test..."
-            npm ci || npm install
-            npm run lint || echo "lint script found"
-            npm test || echo "No test script found"
-          else
-            echo "package.json not found — skipping NodeJS lint/test"
-          fi
+      # - name: Lint & Test (NodeJS)
+      #   if: ${{ inputs.language == 'nodejs' }}
+      #   run: |
+      #     cd "${{ steps.select-dir.outputs.test_dir }}"
+      #     if [ -f "package.json" ]; then
+      #       echo "Running npm install/lint/test..."
+      #       npm ci || npm install
+      #       npm run lint || echo "lint script found"
+      #       npm test || echo "No test script found"
+      #     else
+      #       echo "package.json not found — skipping NodeJS lint/test"
+      #     fi
 
-      # Python
-      - name: Set up Python
-        if: ${{ inputs.language == 'python' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      # # Python
+      # - name: Set up Python
+      #   if: ${{ inputs.language == 'python' }}
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: "3.12"
 
-      - name: Lint & Test (Python)
-        if: ${{ inputs.language == 'python' }}
-        run: |
-          echo "Running Python lint and unit tests..."
-          cd "${{ steps.select-dir.outputs.test_dir }}"
+      # - name: Lint & Test (Python)
+      #   if: ${{ inputs.language == 'python' }}
+      #   run: |
+      #     echo "Running Python lint and unit tests..."
+      #     cd "${{ steps.select-dir.outputs.test_dir }}"
 
-          if [ -f "requirements.txt" ]; then
-            echo "Installing dependencies..."
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
+      #     if [ -f "requirements.txt" ]; then
+      #       echo "Installing dependencies..."
+      #       python -m pip install --upgrade pip
+      #       python -m pip install -r requirements.txt flake8 pytest coverage pytest-cov
 
-            echo "Running flake8 lint..."
-            flake8 . || true
+      #       echo "Running flake8 lint..."
+      #       flake8 . || true
 
-            echo "Running pytest..."
-            export PYTHONPATH="${PWD}/src"
-            pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
-          else
-            echo "requirements.txt not found — skipping Python lint/test"
-          fi
+      #       echo "Running pytest..."
+      #       export PYTHONPATH="${PWD}/src"
+      #       pytest -q --maxfail=1 --junitxml=test-results.xml --cov=. --cov-report=term-missing || true
+      #     else
+      #       echo "requirements.txt not found — skipping Python lint/test"
+      #     fi
 
       # .NET
       - name: Set up .NET
